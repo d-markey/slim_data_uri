@@ -43,6 +43,18 @@ void main() {
       expect(slimUri.data.contentAsBytes(), equals(uri.data!.contentAsBytes()));
     });
 
+    test('Dart Uri --> SlimDataUri with params', () {
+      final uri =
+          Uri.parse('data:application/x-test;param=value;base64,$base64');
+      final slimUri = SlimDataUri.parse(uri.toString());
+      expect(slimUri.toString(), equals(uri.toString()));
+      expect(slimUri.path, equals(uri.path));
+      expect(slimUri.scheme, equals(uri.scheme));
+      expect(slimUri.data.isBase64, uri.data!.isBase64);
+      expect(slimUri.data.mimeType, uri.data!.mimeType);
+      expect(slimUri.data.contentAsBytes(), equals(uri.data!.contentAsBytes()));
+    });
+
     test('SlimDataUri --> Dart Uri', () {
       final slimUri =
           SlimDataUri.parse('data:application/x-test;base64,$base64');

@@ -43,10 +43,7 @@ class SlimDataUri implements Uri {
     var isBase64 = false;
     final semicolon = mimeType.indexOf(';');
     if (semicolon >= 0) {
-      final params = mimeType.substring(semicolon + 1).toLowerCase();
-      if (params == 'base64') {
-        isBase64 = true;
-      }
+      isBase64 = mimeType.toLowerCase().endsWith(';base64');
       mimeType = mimeType.substring(0, semicolon);
     }
     if (mimeType.isEmpty) {

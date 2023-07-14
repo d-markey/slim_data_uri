@@ -46,6 +46,7 @@ class SlimUriData implements UriData {
       mimeType.toLowerCase().compareTo(this.mimeType) == 0;
 
   @override
+  // TODO: implement parameters
   Map<String, String> get parameters => const {};
 }
 
