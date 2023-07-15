@@ -1,6 +1,6 @@
 name: slim_data_uri
 description: A drop-in, efficient replacement for Dart's Uri with "data:" schemes.
-version: 1.1.0
+version: 1.1.1
 repository: https://github.com/d-markey/slim_data_uri
 
 environment:
