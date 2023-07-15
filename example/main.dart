@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -36,7 +37,7 @@ void runBenchmark(String label, void Function(String) dartParser,
     for (var i = 0; i < count; i++) {
       bytes[i] = rnd(256);
     }
-    final contentText = 'data:,${percentEncode(bytes)}';
+    final contentText = 'data:;base64,${base64Encode(bytes)}';
 
     if (i == 0) {
       //dry run
