@@ -42,8 +42,16 @@ class SlimDataUri implements Uri {
     var mimeType = header.substring(colon + 1, comma);
     var isBase64 = false;
     final semicolon = mimeType.indexOf(';');
+    var params = '';
     if (semicolon >= 0) {
       isBase64 = mimeType.toLowerCase().endsWith(';base64');
+      params = mimeType.substring(semicolon + 1);
+      if (isBase64) {
+        params = params.substring(0, params.length - 'base64'.length);
+        if (params.endsWith(';')) {
+          params = params.substring(0, params.length - 1);
+        }
+      }
       mimeType = mimeType.substring(0, semicolon);
     }
     if (mimeType.isEmpty) {
@@ -52,7 +60,7 @@ class SlimDataUri implements Uri {
     }
     // build SlimDataUri
     final uri = SlimDataUri._(contentText, colon + 1, comma + 1);
-    uri.data = createSlimUriData(mimeType, uri, isBase64);
+    uri.data = createSlimUriData(mimeType, uri, params, isBase64);
     return uri;
   }
 

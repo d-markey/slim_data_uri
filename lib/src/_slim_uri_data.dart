@@ -6,7 +6,7 @@ import 'percent_codec.dart';
 import 'slim_data_uri.dart';
 
 class SlimUriData implements UriData {
-  SlimUriData._(String mimeType, this.uri, this.isBase64)
+  SlimUriData._(String mimeType, this.uri, this._params, this.isBase64)
       : mimeType = mimeType.toLowerCase();
 
   @override
@@ -17,6 +17,8 @@ class SlimUriData implements UriData {
 
   @override
   final SlimDataUri uri;
+
+  final String _params;
 
   @override
   String get charset => ascii.name;
@@ -45,12 +47,23 @@ class SlimUriData implements UriData {
   bool isMimeType(String mimeType) =>
       mimeType.toLowerCase().compareTo(this.mimeType) == 0;
 
+  Map<String, String>? _parameters;
+
   @override
-  // TODO: implement parameters
-  Map<String, String> get parameters => const {};
+  Map<String, String> get parameters {
+    if (_parameters == null) {
+      final params = <String, String>{};
+      for (var pair in _params.split(';')) {
+        final pos = pair.indexOf('=');
+        params[pair.substring(0, pos)] = pair.substring(pos + 1);
+      }
+      _parameters = params;
+    }
+    return _parameters!;
+  }
 }
 
 @internal
 SlimUriData createSlimUriData(
-        String mimeType, SlimDataUri uri, bool isBase64) =>
-    SlimUriData._(mimeType, uri, isBase64);
+        String mimeType, SlimDataUri uri, String params, bool isBase64) =>
+    SlimUriData._(mimeType, uri, params, isBase64);
