@@ -15,7 +15,7 @@ class SlimDataUri implements Uri {
   // payload must be percent-encoded
   factory SlimDataUri.percent(String payload,
           {String mimeType = 'application/octet-stream',
-          bool safetyCheck: false}) =>
+          bool safetyCheck = false}) =>
       SlimDataUri.parse('data:$mimeType,$payload', safetyCheck: safetyCheck);
 
   // payload must be percent-encoded
