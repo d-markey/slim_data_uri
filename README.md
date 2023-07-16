@@ -70,6 +70,10 @@ Byte content - GRAND TOTAL:
   * ratio = 2.409
 ```
 
-## Important Note
+## Security Considerations
 
 Because `SlimDataUri` does not parse the data payload, any input provided to `parseUri` or `SlimDataUri.parse`, `SlimDataUri.base64` or `SlimDataUri.percent` must be checked and sanitized beforehand. Failure to do so may result in malicious users providing invalid data that has ben crafted to conduct eg. Cross-Site Scripting (XSS) attacks. For instance, if your program receives base64 or percent-encoded data, it should check that the input is well-formed before using `SlimDataUri`. Alternatively, user input can be systematically base64 or percent-encoded by your code to guarantee safety.
+
+To circumvent security issues, `parseUri`, `SlimDataUri.parse`, `SlimDataUri.base64` and `SlimDataUri.percent` support an optional `safetyCheck` parameter (default value `false`) to check data content and make sure it does not contain forbidden characters such as `"` or `'` that could be used in XSS attacks, at the price of performance. Invalid characters will cause parsing to throw an exception. 
+
+`SlimDataUri` also provides a boolean `isSafeContent` property which can then be checked "just-in-time", for instance before integrating the `data:` Uri into some HTML content. This property does not throw but returns `false` if the data contains any invalid character. Please note that it may return `true` even if the content is invalid: for instance, `%%` is invalid percent-encoded data and `A=B` is invalid base64 content, yet `SlimDataUri.isSafeContent` will return `true` because payloads contain safe characters. Under such circumstances, parsing will succeed and `SlimDataUri.isSafeContent` will return `true`, but `SlimDataUri.contentAsByte()` will throw when trying to decode the payload.

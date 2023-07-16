@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
 import '_uint8_buffer.dart';
 
 /// A codec for percent-encoding.
@@ -41,7 +43,7 @@ class _PercentEncoder extends Converter<List<int>, String> {
     final len = input.length;
     while (pos < len) {
       final ch = input[pos++];
-      if (ch <= 0x20 || ch >= 0x7F || _reserved.contains(ch)) {
+      if (ch <= 0x20 || ch >= 0x7F || reserved.contains(ch)) {
         yield _percent;
         yield _hex((ch & 0xF0) >> 4);
         yield _hex(ch & 0x0F);
@@ -73,7 +75,7 @@ class _PercentDecoder extends Converter<String, Uint8List> {
       if (ch == _percent) {
         ch = (_hex(input.codeUnitAt(pos++)) << 4) |
             _hex(input.codeUnitAt(pos++));
-      } else if (_reserved.contains(ch)) {
+      } else if (reserved.contains(ch)) {
         throw Exception('Invalid character ${String.fromCharCode(ch)}');
       }
       buffer.writeByte(ch);
@@ -89,7 +91,7 @@ class _PercentDecoder extends Converter<String, Uint8List> {
       if (ch == _percent) {
         ch = (_hex(input.codeUnitAt(pos++)) << 4) |
             _hex(input.codeUnitAt(pos++));
-      } else if (_reserved.contains(ch)) {
+      } else if (reserved.contains(ch)) {
         throw Exception('Invalid character ${String.fromCharCode(ch)}');
       }
       yield ch;
@@ -119,9 +121,11 @@ const _0 = 0x30; // 0
 // ignore: constant_identifier_names
 const _9 = _0 + 9; // 9
 
-const _reserved = {
+@internal
+const reserved = {
   0x20, // space
   0x21, // !
+  0x22, // "
   0x23, // #
   0x24, // $
   0x25, // %

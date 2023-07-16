@@ -1,4 +1,5 @@
 import '_slim_uri_data.dart';
+import 'percent_codec.dart' as percent_codec;
 
 class SlimDataUri implements Uri {
   // for internal use
@@ -6,16 +7,19 @@ class SlimDataUri implements Uri {
 
   // payload must be base64-encoded
   factory SlimDataUri.base64(String payload,
-          {String mimeType = 'application/octet-stream'}) =>
-      SlimDataUri.parse('data:$mimeType;base64,$payload');
+          {String mimeType = 'application/octet-stream',
+          bool safetyCheck = false}) =>
+      SlimDataUri.parse('data:$mimeType;base64,$payload',
+          safetyCheck: safetyCheck);
 
   // payload must be percent-encoded
   factory SlimDataUri.percent(String payload,
-          {String mimeType = 'application/octet-stream'}) =>
-      SlimDataUri.parse('data:$mimeType,$payload');
+          {String mimeType = 'application/octet-stream',
+          bool safetyCheck: false}) =>
+      SlimDataUri.parse('data:$mimeType,$payload', safetyCheck: safetyCheck);
 
   // payload must be percent-encoded
-  factory SlimDataUri.parse(String contentText) {
+  factory SlimDataUri.parse(String contentText, {bool safetyCheck = false}) {
     // find path start
     var comma = contentText.indexOf(',');
     if (comma < 0) {
@@ -58,10 +62,47 @@ class SlimDataUri implements Uri {
       // force 'application/octet-stream' mime type
       mimeType = 'application/octet-stream';
     }
+    // check payload
+    if (safetyCheck) {
+      if (isBase64) {
+        _checkBase64(contentText, comma + 1);
+      } else {
+        _checkPercentEncoded(contentText, comma + 1);
+      }
+    }
     // build SlimDataUri
     final uri = SlimDataUri._(contentText, colon + 1, comma + 1);
     uri.data = createSlimUriData(mimeType, uri, params, isBase64);
     return uri;
+  }
+
+  static void _checkBase64(String contentText, int start) {
+    final allowed = <int>{};
+    allowed.addAll('abcdefghijklmnopqrstuvwxyz'
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            '0123456789+/='
+        .codeUnits);
+    final len = contentText.length;
+    for (var i = start; i < len; i++) {
+      if (!allowed.contains(contentText.codeUnitAt(i))) {
+        throw Exception('Invalid base64 payload');
+      }
+    }
+  }
+
+  static void _checkPercentEncoded(String contentText, int start) {
+    final reserved = <int>{};
+    for (var i = 0; i < 32; i++) {
+      reserved.add((i));
+    }
+    reserved.addAll(percent_codec.reserved);
+    reserved.remove(0x25); // allow '%' in percent-encoded payload!
+    final len = contentText.length;
+    for (var i = start; i < len; i++) {
+      if (reserved.contains(contentText.codeUnitAt(i))) {
+        throw Exception('Invalid parcent-encoded payload');
+      }
+    }
   }
 
   final String _contentText;
@@ -108,6 +149,19 @@ class SlimDataUri implements Uri {
 
   @override
   bool isScheme(String scheme) => scheme.toLowerCase().compareTo('data') == 0;
+
+  bool get isSafeContent {
+    try {
+      if (data.isBase64) {
+        _checkBase64(_contentText, _payloadStart);
+      } else {
+        _checkPercentEncoded(_contentText, _payloadStart);
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Uri normalizePath() => this;
