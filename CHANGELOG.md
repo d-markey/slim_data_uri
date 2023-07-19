@@ -1,3 +1,7 @@
+## 1.3.0
+
+- Reworked base64 and percent encodings for better speed.
+
 ## 1.2.0
 
 - Add optional `safetyCheck` parameter (default value: `false`) to check for payload safety upon construction.
