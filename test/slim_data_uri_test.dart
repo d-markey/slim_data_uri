@@ -1,13 +1,15 @@
-import 'dart:convert';
-
 import 'package:slim_data_uri/slim_data_uri.dart';
+import 'package:slim_data_uri/base64_encoding.dart' as b64;
+import 'package:slim_data_uri/percent_encoding.dart' as pc;
 import 'package:test/test.dart';
 
 void main() {
-  final base64 = base64Encode(bytes);
-  final percent = percentEncode(bytes);
+  final base64 = b64.encode(bytes);
+  final percent = pc.encode(bytes);
 
-  group('Base64 encoded', () {
+  final throws = throwsA(anyOf(isA<Exception>(), isA<Error>()));
+
+  group('Base64 encoded -', () {
     test('Build with payload', () {
       final slimUri =
           SlimDataUri.base64(base64, mimeType: 'application/x-test');
@@ -41,14 +43,14 @@ void main() {
       expect(slimUri.isSafeContent, isFalse);
       expect(slimUri.data.isBase64, isTrue);
       expect(slimUri.data.mimeType, equals('application/octet-stream'));
-      expect(slimUri.data.contentAsBytes, throwsA(isA<Exception>()));
+      expect(slimUri.data.contentAsBytes, throws);
     });
 
     test('Parse - with safety check', () {
       final malicious = 'DUMMY"/><script>alert("attack!");</script>';
       expect(
           () => SlimDataUri.parse('data:;base64,$malicious', safetyCheck: true),
-          throwsA(isA<Exception>()));
+          throws);
     });
 
     test('Parse - safe yet invalid payload', () {
@@ -56,7 +58,7 @@ void main() {
       final slimUri =
           SlimDataUri.parse('data:;base64,$invalid', safetyCheck: true);
       expect(slimUri.isSafeContent, isTrue);
-      expect(slimUri.data.contentAsBytes, throwsA(isA<Exception>()));
+      expect(slimUri.data.contentAsBytes, throws);
     });
 
     test('Dart Uri --> SlimDataUri', () {
@@ -95,10 +97,10 @@ void main() {
       expect(slimUri.data.contentAsBytes(), equals(uri.data!.contentAsBytes()));
     });
 
-    group('Performance', () {
+    group('Performance -', () {
       test('parse', () {
         var dart = Duration.zero, slim = Duration.zero;
-        final uri = 'data:;base64,${base64 * 10000}';
+        final uri = 'data:;base64,${base64 * 100000}';
         final sw = Stopwatch();
         for (var i = 0; i < 10; i++) {
           sw.reset();
@@ -111,13 +113,34 @@ void main() {
           Uri.parse(uri);
           dart += sw.elapsed;
         }
+        reportPerf(slim, dart);
         expect(slim.inMicroseconds, lessThan(dart.inMicroseconds));
-        expect(dart.inMicroseconds / slim.inMicroseconds, greaterThan(20));
+        expect(dart.inMicroseconds / slim.inMicroseconds, greaterThan(100));
+      });
+
+      test('parse - with safety check', () {
+        var dart = Duration.zero, slim = Duration.zero;
+        final uri = 'data:;base64,${base64 * 100000}';
+        final sw = Stopwatch();
+        for (var i = 0; i < 10; i++) {
+          sw.reset();
+          sw.start();
+          SlimDataUri.parse(uri, safetyCheck: true);
+          slim += sw.elapsed;
+
+          sw.reset();
+          sw.start();
+          Uri.parse(uri);
+          dart += sw.elapsed;
+        }
+        reportPerf(slim, dart);
+        expect(slim.inMicroseconds, lessThan(dart.inMicroseconds));
+        expect(dart.inMicroseconds / slim.inMicroseconds, greaterThan(2));
       });
 
       test('contentAsBytes', () {
         var dart = Duration.zero, slim = Duration.zero;
-        final uri = 'data:;base64,${base64 * 10000}';
+        final uri = 'data:;base64,${base64 * 100000}';
         final slimData = SlimDataUri.parse(uri).data;
         final uriData = Uri.parse(uri).data!;
         final sw = Stopwatch();
@@ -133,11 +156,12 @@ void main() {
           dart += sw.elapsed;
         }
         reportPerf(slim, dart);
+        expect(slim.inMicroseconds, lessThan(dart.inMicroseconds));
       });
     });
   });
 
-  group('Percent encoded', () {
+  group('Percent encoded -', () {
     test('Build with payload', () {
       final slimUri =
           SlimDataUri.percent(percent, mimeType: 'application/x-test');
@@ -171,20 +195,20 @@ void main() {
       expect(slimUri.isSafeContent, isFalse);
       expect(slimUri.data.isBase64, isFalse);
       expect(slimUri.data.mimeType, equals('application/octet-stream'));
-      expect(slimUri.data.contentAsBytes, throwsA(isA<Exception>()));
+      expect(slimUri.data.contentAsBytes, throws);
     });
 
     test('Parse - with safety check', () {
       final malicious = 'DUMMY"/><script>alert("attack!");</script>';
       expect(() => SlimDataUri.parse('data:,$malicious', safetyCheck: true),
-          throwsA(isA<Exception>()));
+          throws);
     });
 
     test('Parse - safe yet invalid payload', () {
       final invalid = '%%';
       final slimUri = SlimDataUri.parse('data:,$invalid', safetyCheck: true);
       expect(slimUri.isSafeContent, isTrue);
-      expect(slimUri.data.contentAsBytes, throwsA(isA<Exception>()));
+      expect(slimUri.data.contentAsBytes, throws);
     });
 
     test('Dart Uri --> SlimDataUri', () {
@@ -221,10 +245,10 @@ void main() {
       expect(slimUri.data.contentAsBytes(), equals(uri.data!.contentAsBytes()));
     });
 
-    group('Performance', () {
+    group('Performance -', () {
       test('parse', () {
         var dart = Duration.zero, slim = Duration.zero;
-        final uri = 'data:,${percent * 10000}';
+        final uri = 'data:,${percent * 100000}';
         final sw = Stopwatch();
         for (var i = 0; i < 10; i++) {
           sw.reset();
@@ -237,13 +261,34 @@ void main() {
           Uri.parse(uri);
           dart += sw.elapsed;
         }
+        reportPerf(slim, dart);
         expect(slim.inMicroseconds, lessThan(dart.inMicroseconds));
-        expect(dart.inMicroseconds / slim.inMicroseconds, greaterThan(20));
+        expect(dart.inMicroseconds / slim.inMicroseconds, greaterThan(100));
+      });
+
+      test('parse - with safety check', () {
+        var dart = Duration.zero, slim = Duration.zero;
+        final uri = 'data:,${percent * 100000}';
+        final sw = Stopwatch();
+        for (var i = 0; i < 10; i++) {
+          sw.reset();
+          sw.start();
+          SlimDataUri.parse(uri, safetyCheck: true);
+          slim += sw.elapsed;
+
+          sw.reset();
+          sw.start();
+          Uri.parse(uri);
+          dart += sw.elapsed;
+        }
+        reportPerf(slim, dart);
+        expect(slim.inMicroseconds, lessThan(dart.inMicroseconds));
+        expect(dart.inMicroseconds / slim.inMicroseconds, greaterThan(2));
       });
 
       test('contentAsBytes', () {
         var dart = Duration.zero, slim = Duration.zero;
-        final uri = 'data:,${percent * 10000}';
+        final uri = 'data:,${percent * 100000}';
         final slimData = SlimDataUri.parse(uri).data;
         final uriData = Uri.parse(uri).data!;
         final sw = Stopwatch();
@@ -259,15 +304,14 @@ void main() {
           dart += sw.elapsed;
         }
         reportPerf(slim, dart);
+        expect(slim.inMicroseconds, lessThan(dart.inMicroseconds));
       });
     });
   });
 }
 
-void reportPerf(Duration baseLine, Duration contender) {
-  print(
-      '- perf ratio = ${contender.inMicroseconds} µs vs ${baseLine.inMicroseconds} µs =  ${(contender.inMicroseconds / baseLine.inMicroseconds).toStringAsFixed(2)}');
-}
+void reportPerf(Duration contender, Duration baseline) => print(
+    '- perf ratio = ${contender.inMicroseconds} µs vs ${baseline.inMicroseconds} µs =  ${(baseline.inMicroseconds / contender.inMicroseconds).toStringAsFixed(2)}');
 
 final bytes = [
   0x01,

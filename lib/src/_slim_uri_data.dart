@@ -1,8 +1,9 @@
-import 'dart:convert';
+import 'dart:convert' as convert;
 import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
-import 'percent_codec.dart';
+import 'base64_encoding.dart' as base64;
+import 'percent_encoding.dart' as percent;
 import 'slim_data_uri.dart';
 
 class SlimUriData implements UriData {
@@ -21,27 +22,29 @@ class SlimUriData implements UriData {
   final String _params;
 
   @override
-  String get charset => ascii.name;
+  String get charset => convert.ascii.name;
 
-  Iterable<int> get bytes =>
-      isBase64 ? base64Decode(uri.payload) : percentDecodeBytes(uri.payload);
+  Iterable<int> get bytes => isBase64
+      ? base64.decodeBytes(uri.payload)
+      : percent.decodeBytes(uri.payload);
 
   @override
   Uint8List contentAsBytes() =>
-      isBase64 ? base64Decode(uri.payload) : percentDecode(uri.payload);
+      isBase64 ? base64.decode(uri.payload) : percent.decode(uri.payload);
 
   @override
-  String contentAsString({Encoding? encoding}) =>
-      (encoding ??= ascii).decode(contentAsBytes());
+  String contentAsString({convert.Encoding? encoding}) =>
+      (encoding ??= convert.ascii).decode(contentAsBytes());
 
   @override
   String get contentText => uri.path;
 
   @override
-  bool isCharset(String charset) => Encoding.getByName(charset) == ascii;
+  bool isCharset(String charset) =>
+      convert.Encoding.getByName(charset) == convert.ascii;
 
   @override
-  bool isEncoding(Encoding encoding) => encoding == ascii;
+  bool isEncoding(convert.Encoding encoding) => encoding == convert.ascii;
 
   @override
   bool isMimeType(String mimeType) =>

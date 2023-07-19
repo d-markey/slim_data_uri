@@ -1,5 +1,6 @@
 import '_slim_uri_data.dart';
-import 'percent_codec.dart' as percent_codec;
+import 'base64_encoding.dart' as b64;
+import 'percent_encoding.dart' as pc;
 
 class SlimDataUri implements Uri {
   // for internal use
@@ -77,30 +78,27 @@ class SlimDataUri implements Uri {
   }
 
   static void _checkBase64(String contentText, int start) {
-    final allowed = <int>{};
-    allowed.addAll('abcdefghijklmnopqrstuvwxyz'
-            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-            '0123456789+/='
-        .codeUnits);
-    final len = contentText.length;
-    for (var i = start; i < len; i++) {
-      if (!allowed.contains(contentText.codeUnitAt(i))) {
+    final len = contentText.length - 1;
+    var pos = start;
+    while (pos < len) {
+      final ch = contentText.codeUnitAt(pos++);
+      if (ch == 0x3D || b64.isValid(ch)) {
+        // OK, continue
+      } else {
         throw Exception('Invalid base64 payload');
       }
     }
   }
 
   static void _checkPercentEncoded(String contentText, int start) {
-    final reserved = <int>{};
-    for (var i = 0; i < 32; i++) {
-      reserved.add((i));
-    }
-    reserved.addAll(percent_codec.reserved);
-    reserved.remove(0x25); // allow '%' in percent-encoded payload!
-    final len = contentText.length;
-    for (var i = start; i < len; i++) {
-      if (reserved.contains(contentText.codeUnitAt(i))) {
-        throw Exception('Invalid parcent-encoded payload');
+    final len = contentText.length - 1;
+    var pos = start;
+    while (pos < len) {
+      final codeUnit = contentText.codeUnitAt(pos++);
+      if (codeUnit == 0x25 || !pc.isReserved(codeUnit)) {
+        // OK, continue
+      } else {
+        throw Exception('Invalid percent-encoded payload');
       }
     }
   }

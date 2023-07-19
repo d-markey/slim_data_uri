@@ -1,5 +1,4 @@
 export 'src/slim_data_uri.dart';
-export 'src/percent_codec.dart' hide reserved;
 
 import 'src/slim_data_uri.dart';
 

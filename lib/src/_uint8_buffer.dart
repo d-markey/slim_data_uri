@@ -1,62 +1,36 @@
-import 'dart:math';
 import 'dart:typed_data';
 
-class Uint8Buffer {
-  Uint8Buffer([int initialCapacity = 1024])
-      : initialCapacity =
-            (initialCapacity <= 0 ? _blockSize : initialCapacity) {
-    _bytes = Uint8List(initialCapacity);
-  }
+import 'package:meta/meta.dart';
+
+abstract class Uint8Buffer {
+  Uint8Buffer._(this.initialCapacity) : _bytes = _empty;
+
+  factory Uint8Buffer({int? initialCapacity, bool secure = false}) => secure
+      ? _Uint8SecureBuffer(
+          initialCapacity:
+              (initialCapacity ?? 0) <= _4Kib ? _4Kib : initialCapacity!)
+      : _Uint8Buffer(
+          initialCapacity:
+              (initialCapacity ?? 0) <= _4Kib ? _4Kib : initialCapacity!);
 
   final int initialCapacity;
 
-  late Uint8List _bytes;
-
+  Uint8List _bytes;
   int get capacity => _bytes.length;
 
   int _length = 0;
   int get length => _length;
 
-  static const int _kib = 1024;
-  static const int _blockSize = _kib;
-  // ignore: constant_identifier_names
-  static const int _4Mib = 4 * _kib * _kib;
-
-  static final _empty = Uint8List(0);
-
-  void dispose() {
-    _bytes = _empty;
-    _length = 0;
-  }
-
+  @mustCallSuper
   void clear() {
     _length = 0;
   }
 
-  static int _blocks(int length) {
-    var nbBlocks = length ~/ _blockSize;
-    if (length % _blockSize != 0) {
-      nbBlocks += 1;
-    }
-    return nbBlocks;
-  }
+  void _ensureCapacity(int length);
 
-  void _ensureCapacity(int length) {
-    if (_bytes.isEmpty) {
-      if (length <= initialCapacity) {
-        _bytes = Uint8List(initialCapacity);
-      } else {
-        _bytes = Uint8List(max(_blockSize * _blocks(length), initialCapacity));
-      }
-    } else if (length > _bytes.length) {
-      var capacity = _bytes.length;
-      while (capacity < length) {
-        capacity += (capacity < _4Mib) ? capacity : _4Mib;
-      }
-      final buf = Uint8List(capacity);
-      buf.setRange(0, _length, _bytes);
-      _bytes = buf;
-    }
+  void dispose() {
+    clear();
+    _bytes = _empty;
   }
 
   void writeByte(int byte) {
@@ -65,17 +39,60 @@ class Uint8Buffer {
   }
 
   void writeBytes(List<int> bytes) {
-    final len = bytes.length;
-    _ensureCapacity(_length + len);
-    _bytes.setRange(_length, _length + len, bytes);
-    _length += len;
+    final len = bytes.length, total = _length + len;
+    _ensureCapacity(total);
+    _bytes.setRange(_length, total, bytes);
+    _length = total;
   }
 
-  Uint8List toList() {
-    final list = Uint8List(_length);
-    list.setRange(0, _length, _bytes);
-    return list;
-  }
-
-  Iterable<int> asIterable() => _bytes.take(_length);
+  Uint8List view() => Uint8List.sublistView(_bytes, 0, _length);
 }
+
+class _Uint8Buffer extends Uint8Buffer {
+  _Uint8Buffer({required int initialCapacity}) : super._(initialCapacity);
+
+  @override
+  void _ensureCapacity(int length) {
+    if (length > _bytes.length) {
+      var capacity = _bytes.isEmpty ? initialCapacity : _bytes.length;
+      while (capacity < length) {
+        capacity += (capacity < _16Mib) ? capacity : _16Mib;
+      }
+      final buf = Uint8List(capacity);
+      buf.setRange(0, _length, _bytes);
+      _bytes = buf;
+    }
+  }
+}
+
+class _Uint8SecureBuffer extends Uint8Buffer {
+  _Uint8SecureBuffer({required int initialCapacity}) : super._(initialCapacity);
+
+  @override
+  void clear() {
+    _bytes.fillRange(0, _bytes.length, 0);
+    super.clear();
+  }
+
+  @override
+  void _ensureCapacity(int length) {
+    if (length > _bytes.length) {
+      var capacity = _bytes.isEmpty ? initialCapacity : _bytes.length;
+      while (capacity < length) {
+        capacity += (capacity < _16Mib) ? capacity : _16Mib;
+      }
+      final buf = Uint8List(capacity);
+      buf.setRange(0, _length, _bytes);
+      _bytes.fillRange(0, _bytes.length, 0);
+      _bytes = buf;
+    }
+  }
+}
+
+final _empty = Uint8List(0);
+
+const int _kib = 1024;
+// ignore: constant_identifier_names
+const int _4Kib = 4 * _kib;
+// ignore: constant_identifier_names
+const int _16Mib = 16 * _kib * _kib;
